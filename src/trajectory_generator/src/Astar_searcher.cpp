@@ -190,8 +190,9 @@ double Astarpath::getHeu(MappingNodePtr node1, MappingNodePtr node2) {
 
   double heu;
   double tie_breaker;
-
-
+  double distance = (node1->coord - node2->coord).norm();
+  tie_breaker = 1.01;
+  heu = distance * tie_breaker;
   
   return heu;
 
@@ -252,10 +253,18 @@ bool Astarpath::AstarSearch(Vector3d start_pt, Vector3d end_pt) {
   while (!Openset.empty()) {
     //1.弹出g+h最小的节点
     //????
+    currentPtr = Openset.begin()->second; 
+    Openset.erase(Openset.begin()); 
+    currentPtr->id = -1;
     //2.判断是否是终点
     //????
+    if (currentPtr->index == goalIdx) { 
+        terminatePtr = currentPtr; 
+        return true;
+    }
     //3.拓展当前节点
     //????
+    AstarGetSucc(currentPtr, neighborPtrSets, edgeCostSets);
     //4.填写信息，完成更新
     for(unsigned int i=0;i<neighborPtrSets.size();i++)
     {
@@ -271,6 +280,11 @@ bool Astarpath::AstarSearch(Vector3d start_pt, Vector3d end_pt) {
       if(neighborPtr->id==0)
       {
         //???
+        neighborPtr->g_score = tentative_g_score;
+        neighborPtr->f_score = tentative_g_score + getHeu(neighborPtr, endPtr);
+        neighborPtr->Father = currentPtr;
+        neighborPtr->id = 1; 
+        Openset.insert(make_pair(neighborPtr->f_score, neighborPtr));
         continue;
       }
       else if(neighborPtr->id==1)
@@ -308,7 +322,17 @@ terminatePtr=terminatePtr->Father;
    * STEP 1.3:  追溯找到的路径
    *
    * **/
+  // 起点也需要加入路径
+  terminatePtr->coord = gridIndex2coord(terminatePtr->index);
+  front_path.push_back(terminatePtr);
 
+  // 将路径从终点到起点反转为从起点到终点
+  reverse(front_path.begin(), front_path.end());
+
+  // 将反转后的路径节点的坐标添加到 path 向量
+  for (auto node : front_path) {
+      path.push_back(node->coord);
+  }
   return path;
 }
 
